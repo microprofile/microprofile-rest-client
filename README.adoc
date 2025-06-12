@@ -1,3 +1,4 @@
+= Rest Client for MicroProfile
 //
 // Copyright (c) 2017 Contributors to the Eclipse Foundation
 //
@@ -18,12 +19,10 @@
 //
 image:https://badges.gitter.im/eclipse/microprofile-rest-client.svg[link="https://gitter.im/eclipse/microprofile-rest-client?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 
-# Rest Client for MicroProfile
-
 == Rationale
 
 The MicroProfile Rest Client provides a type-safe approach to invoke RESTful services over HTTP.  As much as possible the
-MP Rest Client attempts to use link:https://jakarta.ee/specifications/restful-ws/2.1/[Jakarta RESTful Web Services 2.1] APIs for consistency and easier re-use.
+MP Rest Client attempts to use link:https://jakarta.ee/specifications/restful-ws/3.1/[Jakarta RESTful Web Services 3.1] APIs for consistency and easier re-use.
 
 == Example
 
@@ -56,9 +55,8 @@ service like this:
 
 Now we can use this interface as a means to invoke the actual remote review service like this:
 ```java
-URI apiUri = new URI("http://localhost:9080/movieReviewService");
 MovieReviewService reviewSvc = RestClientBuilder.newBuilder()
-            .baseUri(apiUri)
+            .baseUri("http://localhost:9080/movieReviewService")
             .build(MovieReviewService.class);
 Review review = new Review(3 /* stars */, "This was a delightful comedy, but not terribly realistic.");
 reviewSvc.submitReview( movieId, review );
@@ -77,9 +75,8 @@ involved in this project and will provide their own implementation of this speci
 The following Implementations are available
 
 * Apache CXF (http://cxf.apache.org/download.html)
-* Open Liberty (https://openliberty.io/blog/2018/01/31/mpRestClient.html)
-* Thorntail (https://github.com/thorntail/thorntail/tree/master/fractions/microprofile/microprofile-restclient)
-* RESTEasy (https://resteasy.github.io)
+* Open Liberty (https://openliberty.io/)
+* RESTEasy (https://resteasy.dev)
 * Jersey (https://github.com/eclipse-ee4j/jersey)
 
 == Contributing
