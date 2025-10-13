@@ -16,17 +16,14 @@
  * limitations under the License.
  */
 
-package org.eclipse.microprofile.rest.client.tck;
+package org.eclipse.microprofile.rest.client.tck.asynctests;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -44,7 +41,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
@@ -57,10 +53,10 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 
 /**
- * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
+ * @author <a href="mailto:neena.jacob@ibm.com">Neena Jacob</a>
  */
 @RunAsClient
-public class EntityPartTest extends Arquillian {
+public class AsyncEntityPartTest extends Arquillian {
 
     @ArquillianResource
     private URI uri;
@@ -107,10 +103,10 @@ public class EntityPartTest extends Arquillian {
      *             if a test error occurs
      */
     @Test
-    public void uploadFile() throws Exception {
-        try (FileManagerClient client = createClient()) {
+    public void uploadFileAsync() throws Exception {
+        try (AsyncFileManagerClient client = createClient()) {
             final byte[] content;
-            try (InputStream in = EntityPartTest.class.getResourceAsStream("/multipart/test-file1.txt")) {
+            try (InputStream in = AsyncEntityPartTest.class.getResourceAsStream("/multipart/test-file1.txt")) {
                 Assert.assertNotNull(in, "Could not find /multipart/test-file1.txt");
                 content = in.readAllBytes();
             }
@@ -119,7 +115,11 @@ public class EntityPartTest extends Arquillian {
                     .content(new ByteArrayInputStream(content))
                     .mediaType(MediaType.APPLICATION_OCTET_STREAM_TYPE)
                     .build());
-            try (Response response = client.uploadFile(files)) {
+
+            CompletionStage<Response> futureResponse = client.uploadFileAsync(files);
+            Response response = futureResponse.toCompletableFuture().get();
+
+            try {
                 Assert.assertEquals(201, response.getStatus());
                 final JsonArray jsonArray = response.readEntity(JsonArray.class);
                 Assert.assertNotNull(jsonArray);
@@ -128,78 +128,25 @@ public class EntityPartTest extends Arquillian {
                 Assert.assertEquals(json.getString("name"), "test-file1.txt");
                 Assert.assertEquals(json.getString("fileName"), "test-file1.txt");
                 Assert.assertEquals(json.getString("content"), "This is a test file for file 1.\n");
+            } finally {
+                response.close();
             }
         }
     }
 
-    /**
-     * Tests that two files are upload. The response is a simple JSON response with the file information.
-     *
-     * @throws Exception
-     *             if a test error occurs
-     */
-    @Test
-    public void uploadMultipleFiles() throws Exception {
-        try (FileManagerClient client = createClient()) {
-            final Map<String, byte[]> entityPartContent = new LinkedHashMap<>(2);
-            try (InputStream in = EntityPartTest.class.getResourceAsStream("/multipart/test-file1.txt")) {
-                Assert.assertNotNull(in, "Could not find /multipart/test-file1.txt");
-                entityPartContent.put("test-file1.txt", in.readAllBytes());
-            }
-            try (InputStream in = EntityPartTest.class.getResourceAsStream("/multipart/test-file2.txt")) {
-                Assert.assertNotNull(in, "Could not find /multipart/test-file2.txt");
-                entityPartContent.put("test-file2.txt", in.readAllBytes());
-            }
-            final List<EntityPart> files = entityPartContent.entrySet()
-                    .stream()
-                    .map((entry) -> {
-                        try {
-                            return EntityPart.withName(entry.getKey())
-                                    .fileName(entry.getKey())
-                                    .content(entry.getValue())
-                                    .mediaType(MediaType.APPLICATION_OCTET_STREAM_TYPE)
-                                    .build();
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .collect(Collectors.toList());
-
-            try (Response response = client.uploadFile(files)) {
-                Assert.assertEquals(201, response.getStatus());
-                final JsonArray jsonArray = response.readEntity(JsonArray.class);
-                Assert.assertNotNull(jsonArray);
-                Assert.assertEquals(jsonArray.size(), 2);
-                // Don't assume the results are in a specific order
-                for (JsonValue value : jsonArray) {
-                    final JsonObject json = value.asJsonObject();
-                    if (json.getString("name").equals("test-file1.txt")) {
-                        Assert.assertEquals(json.getString("fileName"), "test-file1.txt");
-                        Assert.assertEquals(json.getString("content"), "This is a test file for file 1.\n");
-                    } else if (json.getString("name").equals("test-file2.txt")) {
-                        Assert.assertEquals(json.getString("fileName"), "test-file2.txt");
-                        Assert.assertEquals(json.getString("content"), "This is a test file for file 2.\n");
-                    } else {
-                        Assert.fail(String.format("Unexpected entry %s in JSON response: %n%s", json, jsonArray));
-                    }
-                }
-            }
-        }
-    }
-
-    private FileManagerClient createClient() {
+    private AsyncFileManagerClient createClient() {
         return RestClientBuilder.newBuilder()
                 .baseUri(UriBuilder.fromUri(uri).path("entitypart").build())
-                .build(FileManagerClient.class);
+                .build(AsyncFileManagerClient.class);
     }
 
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
-    public interface FileManagerClient extends AutoCloseable {
+    public interface AsyncFileManagerClient extends AutoCloseable {
 
         @POST
         @Path("upload")
-        Response uploadFile(List<EntityPart> entityParts) throws IOException;
+        CompletionStage<Response> uploadFileAsync(List<EntityPart> entityParts);
     }
 
 }
