@@ -22,7 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -51,6 +50,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.EntityPart;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 
 /**
  * @author <a href="mailto:neena.jacob@ibm.com">Neena Jacob</a>
@@ -135,33 +135,9 @@ public class AsyncEntityPartTest extends Arquillian {
     }
 
     private AsyncFileManagerClient createClient() {
-        try {
-            return RestClientBuilder.newBuilder()
-                    .baseUri(createCombinedUri(uri, "entitypart"))
-                    .build(AsyncFileManagerClient.class);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static URI createCombinedUri(final URI uri, final String path) throws URISyntaxException {
-        if (path == null || path.isEmpty()) {
-            return uri;
-        }
-        String uriString = uri.toString();
-        final StringBuilder builder = new StringBuilder(uriString);
-        if (builder.charAt(builder.length() - 1) == '/') {
-            if (path.charAt(0) == '/') {
-                builder.append(path.substring(1));
-            } else {
-                builder.append(path);
-            }
-        } else if (path.charAt(0) == '/') {
-            builder.append(path);
-        } else {
-            builder.append('/').append(path);
-        }
-        return new URI(builder.toString());
+        return RestClientBuilder.newBuilder()
+                .baseUri(UriBuilder.fromUri(uri).path("entitypart").build())
+                .build(AsyncFileManagerClient.class);
     }
 
     @Consumes(MediaType.MULTIPART_FORM_DATA)
