@@ -33,7 +33,11 @@
     <url>http://microprofile.io</url>
 
     <properties>
-        <version.mp.config>3.1</version.mp.config>
+        <!--
+            3.1.1 is the first Config API release with an Automatic-Module-Name (org.eclipse.microprofile.config),
+            which the api module descriptor targets with `requires static`; 3.1 only had the jar-derived name.
+        -->
+        <version.mp.config>3.1.1</version.mp.config>
         <inceptionYear>2017</inceptionYear>
         <version.jakarta.ee>10.0.0</version.jakarta.ee>
         <version.microprofile.tck.bom>3.7</version.microprofile.tck.bom>
